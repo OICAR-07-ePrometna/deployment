@@ -1,0 +1,68 @@
+services:
+  # ---- Databsae SERVICE (Postgres) ----
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: eprometna
+    ports:
+      - "5332:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "eprometna"]
+      start_period: 1s
+      interval: 0.5s
+      retries: 5
+      timeout: 0.5s
+    networks:
+      - eprometna_network
+
+  # ---- DB EXPLORER SERVICE (Development) ----
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8081:8080"
+    networks:
+      - eprometna_network
+
+  # ---- SERVER SERVICE (Backend) ----
+  server:
+    image: eprometna-server:latest
+    restart: always
+    ports:
+      - "8090:8090"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # GIN_MODE: release
+      APP_ENV: "development"
+      PORT: 8090
+      DB_CONN: "host=db user=postgres password=postgres dbname=eprometna port=5432 sslmode=disable"
+      ACCESS_KEY: "9LKUCZBXDOKB8023ihjijbnaosiuy8dgtf7gb"
+      REFRESH_KEY: "9lkajsbndfjhKJHB893YU1naosiuy8dgtf7gb"
+    networks:
+      - eprometna_network
+
+  # ---- WEBAPP SERVICE (Frontend) ----
+  webapp:
+    image: eprometna-webapp:latest
+    restart: always
+    ports:
+      - "8091:80"
+    environment:
+      BACKEND_URL: "http://server:8090"
+    depends_on:
+      - server
+    networks:
+      - eprometna_network
+
+volumes:
+  postgres_data: {}
+networks:
+  eprometna_network:
+    driver: bridge
