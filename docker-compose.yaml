@@ -58,7 +58,7 @@ services:
     ports:
       - "8091:80"
     environment:
-      BACKEND_URL: "http://server:8090/api"
+      BACKEND_URL: "http://server:8090/"
     depends_on:
       - server
     networks:
